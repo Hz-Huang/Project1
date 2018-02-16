@@ -1,4 +1,4 @@
-> # 678 - Project 1
+> # Project 1
 
 ## Installation
 To build, use:
@@ -18,5 +18,5 @@ or
 > `make test`
 
 # Note
-The original code contain variable HOST_NAME_MAX, which is only avaliable on Linux.
+The original code contain variable HOST_NAME_MAX, which is only avaliable on Linux.<br />
 In order to run this on macOS, src/quash.c is modified, HOST_NAME_MAX is defined as 255.
