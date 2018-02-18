@@ -28,7 +28,8 @@
 char* get_current_directory(bool* should_free) {
   // TODO: Get the current working directory. This will fix the prompt path.
   // HINT: This should be pretty simple
-  IMPLEMENT_ME();
+  char curnt_dir[1024];
+  getcwd(curnt_dir, sizeof(curnt_dir));
 
   // Change this to true if necessary
   *should_free = false;
