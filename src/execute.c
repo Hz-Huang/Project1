@@ -12,21 +12,23 @@
 #include <stdio.h>
 
 #include "quash.h"
-
+bool isFirstTime = true;
+int counterForJobs;
 IMPLEMENT_DEQUE_STRUCT(pidQueue, pid_t);
 IMPLEMENT_DEQUE(pidQueue, pid_t);
 
 typedef struct Job {
+  pid_t processId;
   pidQueue pidQ;
-  int jobId;
-  char* cmd;
+  int Id;
+  char* command;
 } Job;
 
 IMPLEMENT_DEQUE_STRUCT(jobQueue, Job);
 IMPLEMENT_DEQUE(jobQueue, Job);
 
 pidQueue pids;
-JobQueue jobs; 
+jobQueue jobs; 
 
 
 // Remove this and all expansion calls to it
@@ -328,6 +330,13 @@ void create_process(CommandHolder holder) {
 
 // Run a list of commands
 void run_script(CommandHolder* holders) {
+
+  if(isFirstTime)
+  {
+    isFirstTime = false;
+    jobs = new_jobQueue(1);
+  }
+
   if (holders == NULL)
     return;
 
@@ -348,18 +357,28 @@ void run_script(CommandHolder* holders) {
   if (!(holders[0].flags & BACKGROUND)) {
     // Not a background Job
     // TODO: Wait for all processes under the job to complete
-    IMPLEMENT_ME();
+    // IMPLEMENT_ME();
     while(!is_empty_pidQueue(&pids))
     {
-      waitpid(pop_front_pidQueue(&pids));
+      int status; //把pop的那个id拿出来，然后等它跑完
+      waitpid(pop_front_pidQueue(&pids), &status, 0);
     }
+    destroy_pidQueue(&pids); //把这个pid的queue给毁掉
   }
   else {
     // A background job.
     // TODO: Push the new job to the job queue
-    IMPLEMENT_ME();
+    Job tempJob;
+    tempJob.Id = counterForJobs;
+    tempJob.pidQ = pids;
+    tempJob.command = get_command_string();
+    tempJob.processId = peek_back_pidQueue(&pids);
+    push_back_jobQueue(&jobs, tempJob);
+    counterForJobs++;
+
+    //IMPLEMENT_ME();
 
     // TODO: Once jobs are implemented, uncomment and fill the following line
-    // print_job_bg_start(job_id, pid, cmd);
+     print_job_bg_start(tempJob.Id, tempJob.processId, tempJob.command);
   }
 }
