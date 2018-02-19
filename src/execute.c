@@ -12,6 +12,7 @@
 #include <stdio.h>
 
 #include "quash.h"
+int pipe[2];
 bool isFirstTime = true;
 int counterForJobs;
 IMPLEMENT_DEQUE_STRUCT(pidQueue, pid_t);
@@ -321,11 +322,66 @@ void create_process(CommandHolder holder) {
   (void) r_app; // Silence unused variable warning
 
   // TODO: Setup pipes, redirects, and new process
-  IMPLEMENT_ME();
+  //IMPLEMENT_ME();
+  if(p_out){
+    pipe(pipe);
+  }
+   pid_t processId = fork(); //create a process
+   push_back_pidQueue(&jobs->pidQ, processId); //put it in Job Deque
+   if(processEd == 0){ //if child
+     if(p_in){
+       dup2(pipe[0], 0); //read end
+     }
+     close(pipe[0]); //close read end
+     if(p_out){
+       dup2(pipe[1], 1) //write end
+     }
+     close(pipe[1]); //close write end
+     if(r_in)
+     {
+       int fileDescriptorInput = open(holder.redirect_in, O_RDONLY); //try to open the file
+       if(fileDescriptorInput > 0) //if opened it
+       {
+         dup2(fileDescriptorInput, 0);
+         close(fileDescriptorInput);
+       }
+       else
+       {
+         perror("Unable to open this file to input.");
+       }
+     }
 
+     if(r_out)
+     {
+       int fileDescriptorOutput;
+       if(r_app) //if append output to some other files
+       {
+         fileDescriptorOutput = open(holder.redirect_out, O_RDWR | O_APPEND | O_CREAT, 0700); //append text to files
+         //if file not exit, create them
+       }
+       else{
+         fileDescriptorOutput = open(holder.redirect_out, O_RDWR | O_APPEND | O_CREAT, 0700); //truncate 
+           //if file not exit, create them
+       }
+       if(fileDescriptorOutput > 0)
+       {
+         dup2(fileDescriptorOutput, 1);
+         close(1);
+       }
+       else
+       {
+         perror("Unable to open this file to input.");
+       }
+     }
+       child_run_command(holder.cmd); // This should be done in the child branch of a fork
+       exit(0);
+   }
+   else{
+     push_back_pidQueue(&);
+   }
   //parent_run_command(holder.cmd); // This should be done in the parent branch of
                                   // a fork
-  //child_run_command(holder.cmd); // This should be done in the child branch of a fork
+
 }
 
 // Run a list of commands
