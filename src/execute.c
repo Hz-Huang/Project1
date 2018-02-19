@@ -8,11 +8,11 @@
  */
 
 #include "execute.h"
-
+#include <fcntl.h>
 #include <stdio.h>
 
 #include "quash.h"
-int pipe[2];
+int Mypipe[2];
 bool isFirstTime = true;
 int counterForJobs;
 IMPLEMENT_DEQUE_STRUCT(pidQueue, pid_t);
@@ -48,7 +48,7 @@ char* get_current_directory(bool* should_free) {
   // TODO: Get the current working directory. This will fix the prompt path.
   // HINT: This should be pretty simple
   char *curnt_dir =  NULL;
-  curnt_dir = getcwd(curnt_dir);
+  curnt_dir = getwd(curnt_dir);
   // Change this to true if necessary
   *should_free = false;
 
@@ -305,7 +305,7 @@ void parent_run_command(Command cmd) {
  *
  * @sa Command CommandHolder
  */
-void create_process(CommandHolder holder) {
+void create_process(CommandHolder holder, Job* aJob) {
   // Read the flags field from the parser
   bool p_in  = holder.flags & PIPE_IN;
   bool p_out = holder.flags & PIPE_OUT;
@@ -324,19 +324,19 @@ void create_process(CommandHolder holder) {
   // TODO: Setup pipes, redirects, and new process
   //IMPLEMENT_ME();
   if(p_out){
-    pipe(pipe);
+    pipe(Mypipe);
   }
    pid_t processId = fork(); //create a process
-   push_back_pidQueue(&jobs->pidQ, processId); //put it in Job Deque
-   if(processEd == 0){ //if child
+   push_back_pidQueue(&aJob->pidQ, processId); //put it in Job Deque
+   if(processId == 0){ //if child
      if(p_in){
-       dup2(pipe[0], 0); //read end
+       dup2(Mypipe[0], 0); //read end
      }
-     close(pipe[0]); //close read end
+     close(Mypipe[0]); //close read end
      if(p_out){
-       dup2(pipe[1], 1) //write end
+       dup2(Mypipe[1], 1); //write end
      }
-     close(pipe[1]); //close write end
+     close(Mypipe[1]); //close write end
      if(r_in)
      {
        int fileDescriptorInput = open(holder.redirect_in, O_RDONLY); //try to open the file
@@ -377,10 +377,11 @@ void create_process(CommandHolder holder) {
        exit(0);
    }
    else{
-     push_back_pidQueue(&);
-   }
-  //parent_run_command(holder.cmd); // This should be done in the parent branch of
+     push_back_pidQueue(&aJob->pidQ, processId);
+     parent_run_command(holder.cmd); // This should be done in the parent branch of
                                   // a fork
+   }
+  
 
 }
 
