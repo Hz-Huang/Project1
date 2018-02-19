@@ -13,6 +13,22 @@
 
 #include "quash.h"
 
+IMPLEMENT_DEQUE_STRUCT(pidQueue, pid_t);
+IMPLEMENT_DEQUE(pidQueue, pid_t);
+
+typedef struct Job {
+  pidQueue pidQ;
+  int jobId;
+  char* cmd;
+} Job;
+
+IMPLEMENT_DEQUE_STRUCT(jobQueue, Job);
+IMPLEMENT_DEQUE(jobQueue, Job);
+
+pidQueue pids;
+JobQueue jobs; 
+
+
 // Remove this and all expansion calls to it
 /**
  * @brief Note calls to any function that requires implementation
@@ -333,6 +349,10 @@ void run_script(CommandHolder* holders) {
     // Not a background Job
     // TODO: Wait for all processes under the job to complete
     IMPLEMENT_ME();
+    while(!is_empty_pidQueue(&pids))
+    {
+      waitpid(pop_front_pidQueue(&pids));
+    }
   }
   else {
     // A background job.
