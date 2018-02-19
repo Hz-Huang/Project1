@@ -187,7 +187,7 @@ void run_kill(KillCommand cmd) {
 // Prints the current working directory to stdout
 void run_pwd() {
   // TODO: Print the current working directory
-  IMPLEMENT_ME();
+  printf("%s \n", get_current_directory(NULL));
 
   // Flush the buffer before returning
   fflush(stdout);
