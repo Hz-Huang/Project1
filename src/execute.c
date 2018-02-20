@@ -303,7 +303,24 @@ void create_process(CommandHolder holder) {
   (void) r_app; // Silence unused variable warning
 
   // TODO: Setup pipes, redirects, and new process
-  IMPLEMENT_ME();
+  //IMPLEMENT_ME();
+
+  pid_t pid;
+  
+  pid = fork();
+  if(pid < 0)
+  {
+    printf("Error occurred, fork fail");
+    return;
+  }
+  else if(pid == 0) //child
+  {
+    child_run_command(holder.cmd);
+  }
+  else if(pid == 1) //parent
+  {
+    parent_run_command(holder.cmd); 
+  }
 
   //parent_run_command(holder.cmd); // This should be done in the parent branch of
                                   // a fork
