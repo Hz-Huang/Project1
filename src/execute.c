@@ -14,7 +14,7 @@
 #include "quash.h"
 int Mypipe[2];
 bool isFirstTime = true;
-int counterForJobs;
+int counterForJobs = 1;
 IMPLEMENT_DEQUE_STRUCT(pidQueue, pid_t);
 IMPLEMENT_DEQUE(pidQueue, pid_t);
 
@@ -75,6 +75,7 @@ void check_jobs_bg_status() {
   // jobs. This function should remove jobs from the jobs queue once all
   // processes belonging to a job have completed.
   IMPLEMENT_ME();
+  //run_pwd();
   // TODO: Once jobs are implemented, uncomment and fill the following line
   // print_job_bg_complete(job_id, pid, cmd);
 }
@@ -323,7 +324,7 @@ void create_process(CommandHolder holder, Job* aJob) {
   (void) r_app; // Silence unused variable warning
 
   // TODO: Setup pipes, redirects, and new process
-  //IMPLEMENT_ME();
+  
   if(p_out){
     pipe(Mypipe);
   }
@@ -382,7 +383,7 @@ void create_process(CommandHolder holder, Job* aJob) {
      parent_run_command(holder.cmd); // This should be done in the parent branch of
                                   // a fork
    }
-  
+  IMPLEMENT_ME();
 
 }
 
@@ -408,35 +409,37 @@ void run_script(CommandHolder* holders) {
 
   CommandType type;
 
+  Job aJob;
+  aJob.pidQ = new_pidQueue(1);
+  aJob.command = get_command_string();
   // Run all commands in the `holder` array
   for (int i = 0; (type = get_command_holder_type(holders[i])) != EOC; ++i)
-    create_process(holders[i]);
+    create_process(holders[i], &aJob);
 
   if (!(holders[0].flags & BACKGROUND)) {
     // Not a background Job
     // TODO: Wait for all processes under the job to complete
     // IMPLEMENT_ME();
-    while(!is_empty_pidQueue(&pids))
+    while(!is_empty_pidQueue(&aJob.pidQ))
     {
       int status; //把pop的那个id拿出来，然后等它跑完
-      waitpid(pop_front_pidQueue(&pids), &status, 0);
+      waitpid(pop_front_pidQueue(&aJob.pidQ), &status, 0);
     }
-    destroy_pidQueue(&pids); //把这个pid的queue给毁掉
+    destroy_pidQueue(&aJob.pidQ); //把这pjob的queue给毁掉
+    IMPLEMENT_ME();
   }
   else {
     // A background job.
     // TODO: Push the new job to the job queue
-    Job tempJob;
-    tempJob.Id = counterForJobs;
-    tempJob.pidQ = pids;
-    tempJob.command = get_command_string();
-    tempJob.processId = peek_back_pidQueue(&pids);
-    push_back_jobQueue(&jobs, tempJob);
-    counterForJobs++;
-
-    //IMPLEMENT_ME();
+    if(is_empty_jobQueue(&jobs)){
+      aJob.Id = 1;
+    }else{
+      aJob.Id = 1 + peek_back_jobQueue(&jobs).Id;
+    }
+    aJob.processId = peek_back_pidQueue(&pids);
+    push_back_jobQueue(&jobs, aJob);
 
     // TODO: Once jobs are implemented, uncomment and fill the following line
-     print_job_bg_start(tempJob.Id, tempJob.processId, tempJob.command);
+     print_job_bg_start(aJob.Id, aJob.processId, aJob.command);
   }
 }
