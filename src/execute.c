@@ -8,10 +8,29 @@
  */
 
 #include "execute.h"
-
+#include <fcntl.h>
 #include <stdio.h>
 
 #include "quash.h"
+int Mypipe[2];
+bool isFirstTime = true;
+int counterForJobs;
+IMPLEMENT_DEQUE_STRUCT(pidQueue, pid_t);
+IMPLEMENT_DEQUE(pidQueue, pid_t);
+
+typedef struct Job {
+  pid_t processId;
+  pidQueue pidQ;
+  int Id;
+  char* command;
+} Job;
+
+IMPLEMENT_DEQUE_STRUCT(jobQueue, Job);
+IMPLEMENT_DEQUE(jobQueue, Job);
+
+pidQueue pids;
+jobQueue jobs; 
+
 
 // Remove this and all expansion calls to it
 /**
@@ -172,7 +191,6 @@ void run_pwd() {
   // TODO: Print the current working directory
   bool should_free = false;
   fprintf(stdout,"%s \n", get_current_directory(&should_free));
-
   // Flush the buffer before returning
   fflush(stdout);
 }
@@ -288,7 +306,7 @@ void parent_run_command(Command cmd) {
  *
  * @sa Command CommandHolder
  */
-void create_process(CommandHolder holder) {
+void create_process(CommandHolder holder, Job* aJob) {
   // Read the flags field from the parser
   bool p_in  = holder.flags & PIPE_IN;
   bool p_out = holder.flags & PIPE_OUT;
@@ -305,15 +323,78 @@ void create_process(CommandHolder holder) {
   (void) r_app; // Silence unused variable warning
 
   // TODO: Setup pipes, redirects, and new process
-  IMPLEMENT_ME();
+  //IMPLEMENT_ME();
+  if(p_out){
+    pipe(Mypipe);
+  }
+   pid_t processId = fork(); //create a process
+   push_back_pidQueue(&aJob->pidQ, processId); //put it in Job Deque
+   if(processId == 0){ //if child
+     if(p_in){
+       dup2(Mypipe[0], 0); //read end
+     }
+     close(Mypipe[0]); //close read end
+     if(p_out){
+       dup2(Mypipe[1], 1); //write end
+     }
+     close(Mypipe[1]); //close write end
+     if(r_in)
+     {
+       int fileDescriptorInput = open(holder.redirect_in, O_RDONLY); //try to open the file
+       if(fileDescriptorInput > 0) //if opened it
+       {
+         dup2(fileDescriptorInput, 0);
+         close(fileDescriptorInput);
+       }
+       else
+       {
+         perror("Unable to open this file to input.");
+       }
+     }
 
-  //parent_run_command(holder.cmd); // This should be done in the parent branch of
+     if(r_out)
+     {
+       int fileDescriptorOutput;
+       if(r_app) //if append output to some other files
+       {
+         fileDescriptorOutput = open(holder.redirect_out, O_RDWR | O_APPEND | O_CREAT, 0700); //append text to files
+         //if file not exit, create them
+       }
+       else{
+         fileDescriptorOutput = open(holder.redirect_out, O_RDWR | O_APPEND | O_CREAT, 0700); //truncate 
+           //if file not exit, create them
+       }
+       if(fileDescriptorOutput > 0)
+       {
+         dup2(fileDescriptorOutput, 1);
+         close(1);
+       }
+       else
+       {
+         perror("Unable to open this file to input.");
+       }
+     }
+       child_run_command(holder.cmd); // This should be done in the child branch of a fork
+       exit(0);
+   }
+   else{
+     push_back_pidQueue(&aJob->pidQ, processId);
+     parent_run_command(holder.cmd); // This should be done in the parent branch of
                                   // a fork
-  //child_run_command(holder.cmd); // This should be done in the child branch of a fork
+   }
+  
+
 }
 
 // Run a list of commands
 void run_script(CommandHolder* holders) {
+
+  if(isFirstTime)
+  {
+    isFirstTime = false;
+    jobs = new_jobQueue(1);
+  }
+
   if (holders == NULL)
     return;
 
@@ -334,14 +415,28 @@ void run_script(CommandHolder* holders) {
   if (!(holders[0].flags & BACKGROUND)) {
     // Not a background Job
     // TODO: Wait for all processes under the job to complete
-    IMPLEMENT_ME();
+    // IMPLEMENT_ME();
+    while(!is_empty_pidQueue(&pids))
+    {
+      int status; //把pop的那个id拿出来，然后等它跑完
+      waitpid(pop_front_pidQueue(&pids), &status, 0);
+    }
+    destroy_pidQueue(&pids); //把这个pid的queue给毁掉
   }
   else {
     // A background job.
     // TODO: Push the new job to the job queue
-    IMPLEMENT_ME();
+    Job tempJob;
+    tempJob.Id = counterForJobs;
+    tempJob.pidQ = pids;
+    tempJob.command = get_command_string();
+    tempJob.processId = peek_back_pidQueue(&pids);
+    push_back_jobQueue(&jobs, tempJob);
+    counterForJobs++;
+
+    //IMPLEMENT_ME();
 
     // TODO: Once jobs are implemented, uncomment and fill the following line
-    // print_job_bg_start(job_id, pid, cmd);
+     print_job_bg_start(tempJob.Id, tempJob.processId, tempJob.command);
   }
 }

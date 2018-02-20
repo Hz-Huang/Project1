@@ -9,7 +9,7 @@
 
 #include <stdbool.h>
 #include <unistd.h>
-
+#include "deque.h"
 #include "command.h"
 
 /**
