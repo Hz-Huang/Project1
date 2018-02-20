@@ -56,7 +56,6 @@ void check_jobs_bg_status() {
   // jobs. This function should remove jobs from the jobs queue once all
   // processes belonging to a job have completed.
   IMPLEMENT_ME();
-  
   // TODO: Once jobs are implemented, uncomment and fill the following line
   // print_job_bg_complete(job_id, pid, cmd);
 }
@@ -171,7 +170,8 @@ void run_kill(KillCommand cmd) {
 // Prints the current working directory to stdout
 void run_pwd() {
   // TODO: Print the current working directory
-  IMPLEMENT_ME();
+  bool should_free = false;
+  fprintf(stdout,"%s \n", get_current_directory(&should_free));
 
   // Flush the buffer before returning
   fflush(stdout);
