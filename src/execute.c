@@ -50,7 +50,7 @@ char* get_current_directory(bool* should_free) {
   char *curnt_dir =  NULL;
   curnt_dir = getwd(curnt_dir);
   // Change this to true if necessary
-  *should_free = false;
+  *should_free = true;
 
   return curnt_dir;
 }
@@ -75,7 +75,6 @@ void check_jobs_bg_status() {
   // jobs. This function should remove jobs from the jobs queue once all
   // processes belonging to a job have completed.
   IMPLEMENT_ME();
-
   // TODO: Once jobs are implemented, uncomment and fill the following line
   // print_job_bg_complete(job_id, pid, cmd);
 }
@@ -164,11 +163,13 @@ void run_cd(CDCommand cmd) {
   }
 
   // TODO: Change directory
-
+  chdir(dir);
   // TODO: Update the PWD environment variable to be the new current working
   // directory and optionally update OLD_PWD environment variable to be the old
   // working directory.
-  IMPLEMENT_ME();
+  //IMPLEMENT_ME();
+  setenv("OLD_PWD", getenv("PWD"), 1);
+  setenv("PWD", dir, 1);
 }
 
 // Sends a signal to all processes contained in a job
@@ -188,8 +189,8 @@ void run_kill(KillCommand cmd) {
 // Prints the current working directory to stdout
 void run_pwd() {
   // TODO: Print the current working directory
-  printf("%s \n", get_current_directory(NULL));
-
+  bool should_free = false;
+  fprintf(stdout,"%s \n", get_current_directory(&should_free));
   // Flush the buffer before returning
   fflush(stdout);
 }
