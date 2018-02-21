@@ -368,11 +368,11 @@ void create_process(CommandHolder holder, Job* aJob) {
       FILE * file_outp;
       if(r_app)
       {
-        file_outp = fopen(holder.redirect_out,, "a"); 
+        file_outp = fopen(holder.redirect_out, "a"); 
       }
       else
       {
-        file_outp = fopen(holder.redirect_out,, "w"); 
+        file_outp = fopen(holder.redirect_out, "w"); 
       }
       dup2(fileno(file_outp), STDOUT_FILENO);
       fclose(file_outp);
