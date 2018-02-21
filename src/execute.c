@@ -8,7 +8,8 @@
  */
 
 #include "execute.h"
-
+#include "deque.h"
+#include <fcntl.h>
 #include <stdio.h>
 
 #include "quash.h"
@@ -18,7 +19,6 @@ IMPLEMENT_DEQUE_STRUCT(pidQueue, pid_t);
 IMPLEMENT_DEQUE(pidQueue, pid_t);
 
 typedef struct Job {
-  pid_t processId;//may not useful
   pidQueue pidQ;
   int Id;
   char* command;
@@ -406,7 +406,7 @@ void run_script(CommandHolder* holders) {
   }
 
   CommandType type;
-  Job curnt_Job = new_Job();
+  Job curnt_Job;
 
   // Run all commands in the `holder` array
   for (int i = 0; (type = get_command_holder_type(holders[i])) != EOC; ++i)
