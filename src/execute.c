@@ -13,6 +13,22 @@
 
 #include "quash.h"
 
+int Mypipe[2];
+IMPLEMENT_DEQUE_STRUCT(pidQueue, pid_t);
+IMPLEMENT_DEQUE(pidQueue, pid_t);
+
+typedef struct Job {
+  pid_t processId;//may not useful
+  pidQueue pidQ;
+  int Id;
+  char* command;
+} Job;
+
+IMPLEMENT_DEQUE_STRUCT(jobQueue, Job);
+IMPLEMENT_DEQUE(jobQueue, Job);
+
+jobQueue jobs; 
+
 // Remove this and all expansion calls to it
 /**
  * @brief Note calls to any function that requires implementation
@@ -288,7 +304,7 @@ void parent_run_command(Command cmd) {
  *
  * @sa Command CommandHolder
  */
-void create_process(CommandHolder holder) {
+void create_process(CommandHolder holder, Job* aJob) {
   // Read the flags field from the parser
   bool p_in  = holder.flags & PIPE_IN;
   bool p_out = holder.flags & PIPE_OUT;
@@ -307,9 +323,14 @@ void create_process(CommandHolder holder) {
   // TODO: Setup pipes, redirects, and new process
   //IMPLEMENT_ME();
 
-  pid_t pid;
-  
-  pid = fork();
+  if(p_out || p_in)
+  {
+    pipe(Mypipe);
+  }
+
+  pid_t pid = fork(); 
+
+  push_back_pidQueue(&aJob -> pidQ, pid);
   if(pid < 0)
   {
     printf("Error occurred, fork fail");
@@ -317,10 +338,52 @@ void create_process(CommandHolder holder) {
   }
   else if(pid == 0) //child
   {
+    if(p_in)
+    {
+      dup2(Mypipe[0], STDIN_FILENO); //duplicate read end
+    }
+    if(p_out)
+    {
+      dup2(Mypipe[1], STDOUT_FILENO); //duplicate write end
+    }
+    close(Mypipe[0]);
+    close(Mypipe[1]);
+
+    if(r_in)
+    {
+      int file_inp = open(holder.redirect_in, O_RDONLY);
+      if(file_inp == -1)
+      {
+        printf("Unable to read file");
+      }
+      else
+      {
+        dup2(file_inp,STDIN_FILENO);
+        close(file_inp);
+      }
+    }
+
+    if(r_out)
+    {
+      FILE * file_outp;
+      if(r_app)
+      {
+        file_outp = fopen(holder.redirect_out,, "a"); 
+      }
+      else
+      {
+        file_outp = fopen(holder.redirect_out,, "w"); 
+      }
+      dup2(fileno(file_outp), STDOUT_FILENO);
+      fclose(file_outp);
+    }
+
     child_run_command(holder.cmd);
+    exit(EXIT_SUCCESS);
   }
   else if(pid == 1) //parent
   {
+    push_back_pidQueue(&aJob->pidQ, pid);
     parent_run_command(holder.cmd); 
   }
 
@@ -343,10 +406,11 @@ void run_script(CommandHolder* holders) {
   }
 
   CommandType type;
+  Job curnt_Job = new_Job();
 
   // Run all commands in the `holder` array
   for (int i = 0; (type = get_command_holder_type(holders[i])) != EOC; ++i)
-    create_process(holders[i]);
+    create_process(holders[i], &curnt_Job);
 
   if (!(holders[0].flags & BACKGROUND)) {
     // Not a background Job
