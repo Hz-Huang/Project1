@@ -15,6 +15,7 @@
 #include "quash.h"
 
 int Mypipe[2];
+bool firstTime = true;
 IMPLEMENT_DEQUE_STRUCT(pidQueue, pid_t);
 IMPLEMENT_DEQUE(pidQueue, pid_t);
 
@@ -27,7 +28,7 @@ typedef struct Job {
 IMPLEMENT_DEQUE_STRUCT(jobQueue, Job);
 IMPLEMENT_DEQUE(jobQueue, Job);
 
-jobQueue jobs; 
+jobQueue jobQ;
 
 // Remove this and all expansion calls to it
 /**
@@ -394,6 +395,13 @@ void create_process(CommandHolder holder, Job* aJob) {
 
 // Run a list of commands
 void run_script(CommandHolder* holders) {
+
+  if(firstTime)
+  {
+    jobQ = new_jobQueue(1);
+    firstTime = false;
+  }
+
   if (holders == NULL)
     return;
 
@@ -415,14 +423,29 @@ void run_script(CommandHolder* holders) {
   if (!(holders[0].flags & BACKGROUND)) {
     // Not a background Job
     // TODO: Wait for all processes under the job to complete
-    IMPLEMENT_ME();
+    while(!is_empty_pidQueue(&curnt_Job.pidQ))
+    {
+      int status = 0;
+      if( waitpid(pop_front_pidQueue(&curnt_Job.pidQ), &status, 0) == -1)
+      {
+        exit(EXIT_FAILURE);
+      }
+      destroy_pidQueue(&curnt_Job.pidQ);
+    }
   }
   else {
     // A background job.
     // TODO: Push the new job to the job queue
-    IMPLEMENT_ME();
-
+    if(is_empty_jobQueue(&jobQ))
+    {
+      curnt_Job.Id = 1;
+    }
+    else
+    {
+      curnt_Job.Id = peek_back_jobQueue(&jobQ).Id + 1;
+    }
+    push_back_jobQueue(&jobQ, curnt_Job);
     // TODO: Once jobs are implemented, uncomment and fill the following line
-    // print_job_bg_start(job_id, pid, cmd);
+    print_job_bg_start(curnt_Job.Id, peek_front_pidQueue(&curnt_Job.pidQ), curnt_Job.command);
   }
 }
