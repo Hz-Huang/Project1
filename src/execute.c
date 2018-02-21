@@ -127,10 +127,16 @@ void run_echo(EchoCommand cmd) {
   char** str = cmd.args;
 
   // TODO: Remove warning silencers
-  (void) str; // Silence unused variable warning
+  //(void) str; // Silence unused variable warning
+  while(*str != NULL)
+  {
+    printf("%s ", *str);
+    str++; //next string
+  }
 
+  printf("\n");
   // TODO: Implement echo
-  IMPLEMENT_ME();
+  //IMPLEMENT_ME();
 
   // Flush the buffer before returning
   fflush(stdout);
@@ -163,11 +169,13 @@ void run_cd(CDCommand cmd) {
   }
 
   // TODO: Change directory
-
+  chdir(dir);
   // TODO: Update the PWD environment variable to be the new current working
   // directory and optionally update OLD_PWD environment variable to be the old
   // working directory.
-  IMPLEMENT_ME();
+  //IMPLEMENT_ME();
+  setenv("OLD_PWD", getenv("PWD"), 1);
+  setenv("PWD", dir, 1);
 }
 
 // Sends a signal to all processes contained in a job
