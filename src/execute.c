@@ -49,7 +49,7 @@ char* get_current_directory(bool* should_free) {
   // HINT: This should be pretty simple
   char *curnt_dir =  NULL;
   curnt_dir = getwd(curnt_dir);
-  // Change this to true if necessary
+  // Change this to true if necessary!!!!
   *should_free = true;
 
   return curnt_dir;
