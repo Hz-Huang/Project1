@@ -382,7 +382,7 @@ void create_process(CommandHolder holder, Job* aJob) {
     child_run_command(holder.cmd);
     exit(EXIT_SUCCESS);
   }
-  else if(pid == 1) //parent
+  else //parent
   {
     push_back_pidQueue(&aJob->pidQ, pid);
     parent_run_command(holder.cmd); 
@@ -427,10 +427,7 @@ void run_script(CommandHolder* holders) {
     while(!is_empty_pidQueue(&curnt_Job.pidQ))
     {
       int status = 0;
-      if( waitpid(pop_front_pidQueue(&curnt_Job.pidQ), &status, 0) == -1 )
-      {
-        exit(EXIT_FAILURE);
-      }
+      waitpid(pop_front_pidQueue(&curnt_Job.pidQ), &status, 0);
     }
     destroy_pidQueue(&curnt_Job.pidQ);
   }
