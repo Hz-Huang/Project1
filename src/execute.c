@@ -331,7 +331,7 @@ void create_process(CommandHolder holder, Job* aJob) {
 
   pid_t pid = fork(); 
 
-  push_back_pidQueue(&aJob -> pidQ, pid);
+  push_back_pidQueue(&aJob->pidQ, pid);
   if(pid < 0)
   {
     printf("Error occurred, fork fail");
@@ -359,7 +359,7 @@ void create_process(CommandHolder holder, Job* aJob) {
       }
       else
       {
-        dup2(file_inp,STDIN_FILENO);
+        dup2(file_inp, STDIN_FILENO);
         close(file_inp);
       }
     }
@@ -415,7 +415,8 @@ void run_script(CommandHolder* holders) {
 
   CommandType type;
   Job curnt_Job;
-
+  curnt_Job.pidQ = new_pidQueue(1);
+  curnt_Job.command = get_command_string();
   // Run all commands in the `holder` array
   for (int i = 0; (type = get_command_holder_type(holders[i])) != EOC; ++i)
     create_process(holders[i], &curnt_Job);
@@ -426,12 +427,12 @@ void run_script(CommandHolder* holders) {
     while(!is_empty_pidQueue(&curnt_Job.pidQ))
     {
       int status = 0;
-      if( waitpid(pop_front_pidQueue(&curnt_Job.pidQ), &status, 0) == -1)
+      if( waitpid(pop_front_pidQueue(&curnt_Job.pidQ), &status, 0) == -1 )
       {
         exit(EXIT_FAILURE);
       }
-      destroy_pidQueue(&curnt_Job.pidQ);
     }
+    destroy_pidQueue(&curnt_Job.pidQ);
   }
   else {
     // A background job.
