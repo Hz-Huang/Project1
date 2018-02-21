@@ -115,7 +115,8 @@ void run_generic(GenericCommand cmd) {
   (void) args; // Silence unused variable warning
 
   // TODO: Implement run generic
-  IMPLEMENT_ME();
+  execvp(exec, args);
+  //IMPLEMENT_ME();
 
   perror("ERROR: Failed to execute program");
 }
