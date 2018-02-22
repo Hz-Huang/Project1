@@ -238,10 +238,12 @@ void run_kill(KillCommand cmd) {
         {
           pid_t temp = pop_front_pidQueue(&aJob.pidQ);
           kill(temp, signal);
-          push_back_pidQueue(&aJob.pidQ, temp);
         }
       }
-      push_back_jobQueue(&jobQ, aJob);
+      else
+      {
+        push_back_jobQueue(&jobQ, aJob);
+      }
     }
   }
   // TODO: Kill all processes associated with a background job
