@@ -154,7 +154,6 @@ void run_export(ExportCommand cmd) {
   setenv(env_var, val, 1);
   // TODO: Implement export.
   // HINT: This should be quite simple.
-  IMPLEMENT_ME();
 }
 
 // Changes the current working directory
