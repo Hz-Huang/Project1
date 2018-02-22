@@ -73,8 +73,42 @@ void check_jobs_bg_status() {
   // TODO: Check on the statuses of all processes belonging to all background
   // jobs. This function should remove jobs from the jobs queue once all
   // processes belonging to a job have completed.
-  IMPLEMENT_ME();
+  //IMPLEMENT_ME();
+  if( is_empty_jobQueue(&jobQ) )
+  {
+    printf("No job is running\n");
+    return;
+  }
+  else
+  {
+    for(int i = 0; i < length_jobQueue(&jobQ); i++ )
+    {
+      Job aJob = pop_front_jobQueue(&jobQ);
+      for(int j = 0; j < length_pidQueue(&aJob.pidQ); j++)
+      {
+        pid_t temp1 = pop_front_pidQueue(&aJob.pidQ);
+        int status;
+        pid_t temp2 = waitpid(temp1, &status, WNOHANG);
+        if(temp2 == -1)
+        {
+          perror("Process error");
+        }
+        else if(temp2 == 0)
+        {
+          push_back_pidQueue(&aJob.pidQ, temp1);
+        }
+        else if(temp1 == temp2)
+        {
+          print_job_bg_complete(aJob.Id, temp1, aJob.command);
+        }
+      }
 
+      if( length_pidQueue(&aJob.pidQ) != 0)
+      {
+        push_back_jobQueue(&jobQ, aJob);
+      }
+    }
+  }
 
   //run_pwd();
 
@@ -185,8 +219,8 @@ void run_kill(KillCommand cmd) {
   int job_id = cmd.job;
 
   // TODO: Remove warning silencers
-  (void) signal; // Silence unused variable warning
-  (void) job_id; // Silence unused variable warning
+  //(void) signal; // Silence unused variable warning
+  //(void) job_id; // Silence unused variable warning
 
   if( is_empty_jobQueue(&jobQ) )
   {
@@ -198,13 +232,15 @@ void run_kill(KillCommand cmd) {
     for(int i = 0; i < length_jobQueue(&jobQ); i++)
     {
       Job aJob = pop_front_jobQueue(&jobQ);
-      pid_t pid;
-      for(int j = 0; j < length_pidQueue(&aJob.pidQ); j++)
+      if(aJob.Id == job_id)
       {
-        pid = pop_front_pidQueue(&aJob.pidQ);
-        kill(pid, signal);
+        for(int j = 0; j < length_pidQueue(&aJob.pidQ); j++)
+        {
+          pid_t temp = pop_front_pidQueue(&aJob.pidQ);
+          kill(temp, signal);
+          push_back_pidQueue(&aJob.pidQ, temp);
+        }
       }
-
       push_back_jobQueue(&jobQ, aJob);
     }
   }
