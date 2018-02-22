@@ -11,6 +11,8 @@
 #include "deque.h"
 #include <fcntl.h>
 #include <stdio.h>
+#include <sys/types.h>
+#include <signal.h>
 
 #include "quash.h"
 
@@ -186,6 +188,26 @@ void run_kill(KillCommand cmd) {
   (void) signal; // Silence unused variable warning
   (void) job_id; // Silence unused variable warning
 
+  if( is_empty_jobQueue(&jobQ) )
+  {
+    printf("No job is running\n");
+    return;
+  }
+  else
+  {
+    for(int i = 0; i < length_jobQueue(&jobQ); i++)
+    {
+      Job aJob = pop_front_jobQueue(&jobQ);
+      pid_t pid;
+      for(int j = 0; j < length_pidQueue(&aJob.pidQ); j++)
+      {
+        pid = pop_front_pidQueue(&aJob.pidQ);
+        kill(pid, signal);
+      }
+
+      push_back_jobQueue(&jobQ, aJob);
+    }
+  }
   // TODO: Kill all processes associated with a background job
   IMPLEMENT_ME();
 }
@@ -204,7 +226,6 @@ void run_pwd() {
 // Prints all background jobs currently in the job list to stdout
 void run_jobs() {
   // TODO: Print background jobs
-  IMPLEMENT_ME();
   if( is_empty_jobQueue(&jobQ) )
   {
     printf("No job is running\n");
