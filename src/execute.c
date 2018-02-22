@@ -64,8 +64,6 @@ const char* lookup_env(const char* env_var) {
   return getenv(env_var);
   // TODO: Remove warning silencers
   //(void) env_var; // Silence unused variable warning
-
-  //return "???";
 }
 
 // Check the status of background jobs
@@ -119,7 +117,6 @@ void run_generic(GenericCommand cmd) {
 
   // TODO: Implement run generic
   execvp(exec, args);
-  //IMPLEMENT_ME();
 
   perror("ERROR: Failed to execute program");
 }
@@ -140,7 +137,6 @@ void run_echo(EchoCommand cmd) {
 
   printf("\n");
   // TODO: Implement echo
-  //IMPLEMENT_ME();
 
   // Flush the buffer before returning
   fflush(stdout);
@@ -210,6 +206,20 @@ void run_pwd() {
 void run_jobs() {
   // TODO: Print background jobs
   IMPLEMENT_ME();
+  if( is_empty_jobQueue(&jobQ) )
+  {
+    printf("No job is running\n");
+    return;
+  }
+  else
+  {
+    for(int i = 0; i < length_jobQueue(&jobQ); i++)
+    {
+      Job aJob = pop_front_jobQueue(&jobQ);
+      print_job(aJob.Id, peek_front_pidQueue(&aJob.pidQ), aJob.command );
+      push_back_jobQueue(&jobQ, aJob);
+    }
+  }
 
   // Flush the buffer before returning
   fflush(stdout);
@@ -325,7 +335,6 @@ void create_process(CommandHolder holder, Job* aJob) {
   bool r_out = holder.flags & REDIRECT_OUT;
   bool r_app = holder.flags & REDIRECT_APPEND; // This can only be true if r_out
                                                // is true
-  //bool pause = true;
   // TODO: Remove warning silencers
   (void) p_in;  // Silence unused variable warning
   (void) p_out; // Silence unused variable warning
@@ -334,7 +343,6 @@ void create_process(CommandHolder holder, Job* aJob) {
   (void) r_app; // Silence unused variable warning
 
   // TODO: Setup pipes, redirects, and new process
-  //IMPLEMENT_ME();
 
   if(p_out)
   {
@@ -346,12 +354,11 @@ void create_process(CommandHolder holder, Job* aJob) {
   push_back_pidQueue(&aJob->pidQ, pid);
   if(pid < 0)
   {
-    printf("Error occurred, fork fail");
+    printf("Error occurred, fork fail\n");
     return;
   }
   else if(pid == 0) //child
   {
-    //while(pause);
     if(p_in)
     {
       dup2(previousRead, STDIN_FILENO); //duplicate read end
@@ -366,7 +373,7 @@ void create_process(CommandHolder holder, Job* aJob) {
       FILE* file_inp = freopen(holder.redirect_in, "r", stdin);
       if(file_inp == NULL)
       {
-        printf("Unable to read file");
+        printf("Unable to read file\n");
       }
     }
     if(r_out)
@@ -374,11 +381,11 @@ void create_process(CommandHolder holder, Job* aJob) {
       FILE * file_outp;
       if(r_app)
       {
-        file_outp = fopen(holder.redirect_out, "a"); 
+        file_outp = fopen(holder.redirect_out, "a"); //append
       }
       else
       {
-        file_outp = fopen(holder.redirect_out, "w"); 
+        file_outp = fopen(holder.redirect_out, "w"); //not append
       }
       dup2(fileno(file_outp), STDOUT_FILENO);
       fclose(file_outp);
@@ -396,7 +403,6 @@ void create_process(CommandHolder holder, Job* aJob) {
         close(Mypipe[1]);
     }
   }
-  printf("p_in: %d p_out: %d r_in %d r_out %d\n", p_in, p_out, r_in, r_out);
   //parent_run_command(holder.cmd); // This should be done in the parent branch of
                                   // a fork
   //child_run_command(holder.cmd); // This should be done in the child branch of a fork
