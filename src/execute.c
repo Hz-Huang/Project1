@@ -14,6 +14,7 @@
 
 #include "quash.h"
 
+int previousRead = -2;
 int Mypipe[2];
 bool firstTime = true;
 IMPLEMENT_DEQUE_STRUCT(pidQueue, pid_t);
@@ -73,6 +74,8 @@ void check_jobs_bg_status() {
   // jobs. This function should remove jobs from the jobs queue once all
   // processes belonging to a job have completed.
   IMPLEMENT_ME();
+
+
   //run_pwd();
 
   // TODO: Once jobs are implemented, uncomment and fill the following line
@@ -152,7 +155,7 @@ void run_export(ExportCommand cmd) {
   // TODO: Remove warning silencers
   (void) env_var; // Silence unused variable warning
   (void) val;     // Silence unused variable warning
-
+  setenv(env_var, val, 1);
   // TODO: Implement export.
   // HINT: This should be quite simple.
   IMPLEMENT_ME();
@@ -322,7 +325,7 @@ void create_process(CommandHolder holder, Job* aJob) {
   bool r_out = holder.flags & REDIRECT_OUT;
   bool r_app = holder.flags & REDIRECT_APPEND; // This can only be true if r_out
                                                // is true
-
+  //bool pause = true;
   // TODO: Remove warning silencers
   (void) p_in;  // Silence unused variable warning
   (void) p_out; // Silence unused variable warning
@@ -333,7 +336,7 @@ void create_process(CommandHolder holder, Job* aJob) {
   // TODO: Setup pipes, redirects, and new process
   //IMPLEMENT_ME();
 
-  if(p_out || p_in)
+  if(p_out)
   {
     pipe(Mypipe);
   }
@@ -348,31 +351,24 @@ void create_process(CommandHolder holder, Job* aJob) {
   }
   else if(pid == 0) //child
   {
+    //while(pause);
     if(p_in)
     {
-      dup2(Mypipe[0], STDIN_FILENO); //duplicate read end
+      dup2(previousRead, STDIN_FILENO); //duplicate read end
     }
     if(p_out)
     {
       dup2(Mypipe[1], STDOUT_FILENO); //duplicate write end
     }
-    close(Mypipe[0]);
-    close(Mypipe[1]);
 
     if(r_in)
     {
-      int file_inp = open(holder.redirect_in, O_RDONLY);
-      if(file_inp == -1)
+      FILE* file_inp = freopen(holder.redirect_in, "r", stdin);
+      if(file_inp == NULL)
       {
         printf("Unable to read file");
       }
-      else
-      {
-        dup2(file_inp, STDIN_FILENO);
-        close(file_inp);
-      }
     }
-
     if(r_out)
     {
       FILE * file_outp;
@@ -387,7 +383,6 @@ void create_process(CommandHolder holder, Job* aJob) {
       dup2(fileno(file_outp), STDOUT_FILENO);
       fclose(file_outp);
     }
-
     child_run_command(holder.cmd);
     exit(EXIT_SUCCESS);
   }
@@ -395,8 +390,13 @@ void create_process(CommandHolder holder, Job* aJob) {
   {
     push_back_pidQueue(&aJob->pidQ, pid);
     parent_run_command(holder.cmd); 
+    if( p_out )
+    {
+        previousRead = Mypipe[0];
+        close(Mypipe[1]);
+    }
   }
-
+  printf("p_in: %d p_out: %d r_in %d r_out %d\n", p_in, p_out, r_in, r_out);
   //parent_run_command(holder.cmd); // This should be done in the parent branch of
                                   // a fork
   //child_run_command(holder.cmd); // This should be done in the child branch of a fork
