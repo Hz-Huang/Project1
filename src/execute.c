@@ -8,10 +8,27 @@
  */
 
 #include "execute.h"
-
+#include "deque.h"
+#include <fcntl.h>
 #include <stdio.h>
 
 #include "quash.h"
+
+int Mypipe[2];
+bool firstTime = true;
+IMPLEMENT_DEQUE_STRUCT(pidQueue, pid_t);
+IMPLEMENT_DEQUE(pidQueue, pid_t);
+
+typedef struct Job {
+  pidQueue pidQ;
+  int Id;
+  char* command;
+} Job;
+
+IMPLEMENT_DEQUE_STRUCT(jobQueue, Job);
+IMPLEMENT_DEQUE(jobQueue, Job);
+
+jobQueue jobQ;
 
 // Remove this and all expansion calls to it
 /**
@@ -288,7 +305,7 @@ void parent_run_command(Command cmd) {
  *
  * @sa Command CommandHolder
  */
-void create_process(CommandHolder holder) {
+void create_process(CommandHolder holder, Job* aJob) {
   // Read the flags field from the parser
   bool p_in  = holder.flags & PIPE_IN;
   bool p_out = holder.flags & PIPE_OUT;
@@ -305,7 +322,71 @@ void create_process(CommandHolder holder) {
   (void) r_app; // Silence unused variable warning
 
   // TODO: Setup pipes, redirects, and new process
-  IMPLEMENT_ME();
+  //IMPLEMENT_ME();
+
+  if(p_out || p_in)
+  {
+    pipe(Mypipe);
+  }
+
+  pid_t pid = fork(); 
+
+  push_back_pidQueue(&aJob->pidQ, pid);
+  if(pid < 0)
+  {
+    printf("Error occurred, fork fail");
+    return;
+  }
+  else if(pid == 0) //child
+  {
+    if(p_in)
+    {
+      dup2(Mypipe[0], STDIN_FILENO); //duplicate read end
+    }
+    if(p_out)
+    {
+      dup2(Mypipe[1], STDOUT_FILENO); //duplicate write end
+    }
+    close(Mypipe[0]);
+    close(Mypipe[1]);
+
+    if(r_in)
+    {
+      int file_inp = open(holder.redirect_in, O_RDONLY);
+      if(file_inp == -1)
+      {
+        printf("Unable to read file");
+      }
+      else
+      {
+        dup2(file_inp, STDIN_FILENO);
+        close(file_inp);
+      }
+    }
+
+    if(r_out)
+    {
+      FILE * file_outp;
+      if(r_app)
+      {
+        file_outp = fopen(holder.redirect_out, "a"); 
+      }
+      else
+      {
+        file_outp = fopen(holder.redirect_out, "w"); 
+      }
+      dup2(fileno(file_outp), STDOUT_FILENO);
+      fclose(file_outp);
+    }
+
+    child_run_command(holder.cmd);
+    exit(EXIT_SUCCESS);
+  }
+  else //parent
+  {
+    push_back_pidQueue(&aJob->pidQ, pid);
+    parent_run_command(holder.cmd); 
+  }
 
   //parent_run_command(holder.cmd); // This should be done in the parent branch of
                                   // a fork
@@ -314,6 +395,13 @@ void create_process(CommandHolder holder) {
 
 // Run a list of commands
 void run_script(CommandHolder* holders) {
+
+  if(firstTime)
+  {
+    jobQ = new_jobQueue(1);
+    firstTime = false;
+  }
+
   if (holders == NULL)
     return;
 
@@ -326,22 +414,36 @@ void run_script(CommandHolder* holders) {
   }
 
   CommandType type;
-
+  Job curnt_Job;
+  curnt_Job.pidQ = new_pidQueue(1);
+  curnt_Job.command = get_command_string();
   // Run all commands in the `holder` array
   for (int i = 0; (type = get_command_holder_type(holders[i])) != EOC; ++i)
-    create_process(holders[i]);
+    create_process(holders[i], &curnt_Job);
 
   if (!(holders[0].flags & BACKGROUND)) {
     // Not a background Job
     // TODO: Wait for all processes under the job to complete
-    IMPLEMENT_ME();
+    while(!is_empty_pidQueue(&curnt_Job.pidQ))
+    {
+      int status = 0;
+      waitpid(pop_front_pidQueue(&curnt_Job.pidQ), &status, 0);
+    }
+    destroy_pidQueue(&curnt_Job.pidQ);
   }
   else {
     // A background job.
     // TODO: Push the new job to the job queue
-    IMPLEMENT_ME();
-
+    if(is_empty_jobQueue(&jobQ))
+    {
+      curnt_Job.Id = 1;
+    }
+    else
+    {
+      curnt_Job.Id = peek_back_jobQueue(&jobQ).Id + 1;
+    }
+    push_back_jobQueue(&jobQ, curnt_Job);
     // TODO: Once jobs are implemented, uncomment and fill the following line
-    // print_job_bg_start(job_id, pid, cmd);
+    print_job_bg_start(curnt_Job.Id, peek_front_pidQueue(&curnt_Job.pidQ), curnt_Job.command);
   }
 }
